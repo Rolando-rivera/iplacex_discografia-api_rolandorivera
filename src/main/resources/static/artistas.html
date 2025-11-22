@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Artistas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 1.5rem;
+        }
+        h1 {
+            margin-top: 0;
+        }
+        a.volver {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #60a5fa;
+            text-decoration: none;
+        }
+        a.volver:hover {
+            text-decoration: underline;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+        }
+        .panel {
+            background: #020617;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        label {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 0.4rem;
+            margin-top: 0.3rem;
+            border-radius: 6px;
+            border: 1px solid #4b5563;
+            background: #020617;
+            color: #e5e7eb;
+        }
+        button {
+            margin-top: 0.7rem;
+            margin-right: 0.3rem;
+            padding: 0.5rem 0.9rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button.crear { background: #22c55e; }
+        button.actualizar { background: #eab308; }
+        button.eliminar { background: #ef4444; }
+        button.buscar { background: #3b82f6; }
+        button.refrescar { background: #6b7280; }
+        button:hover { filter: brightness(1.1); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.8rem;
+            font-size: 0.9rem;
+        }
+        th, td {
+            border: 1px solid #4b5563;
+            padding: 0.4rem 0.6rem;
+            text-align: left;
+        }
+        th {
+            background: #111827;
+        }
+        tr:nth-child(even) {
+            background: #020617;
+        }
+        #mensaje {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        #mensaje.ok { color: #22c55e; }
+        #mensaje.error { color: #f97316; }
+    </style>
+</head>
+<body>
+<a class="volver" href="index.html">&larr; Volver al menú</a>
+<h1>Gestión de Artistas</h1>
+
+<div class="container">
+    <!-- Panel de formulario -->
+    <div class="panel">
+        <h2>Formulario</h2>
+
+        <label for="id">ID (solo para buscar / actualizar / eliminar)</label>
+        <input type="text" id="id" placeholder="ID generado por MongoDB">
+
+        <label for="nombre">Nombre del artista</label>
+        <input type="text" id="nombre" placeholder="Ej: Pink Floyd">
+
+        <label for="genero">Género</label>
+        <input type="text" id="genero" placeholder="Ej: Rock progresivo">
+
+        <label for="pais">País</label>
+        <input type="text" id="pais" placeholder="Ej: Reino Unido">
+
+        <!-- BOTONES -->
+        <button class="crear" type="button" onclick="crearArtista()">Crear</button>
+        <button class="actualizar" type="button" onclick="actualizarArtista()">Actualizar</button>
+        <button class="eliminar" type="button" onclick="eliminarArtista()">Eliminar</button>
+        <button class="buscar" type="button" onclick="buscarArtista()">Buscar por ID</button>
+        <button class="refrescar" type="button" onclick="cargarArtistas()">Refrescar lista</button>
+
+        <div id="mensaje"></div>
+    </div>
+
+    <!-- Panel de tabla -->
+    <div class="panel">
+        <h2>Artistas registrados</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Género</th>
+                <th>País</th>
+            </tr>
+            </thead>
+            <tbody id="tabla-artistas">
+            <!-- Filas generadas por JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/api/artistas';
+
+    function mostrarMensaje(texto, ok = true) {
+        const div = document.getElementById('mensaje');
+        div.textContent = texto;
+        div.className = ok ? 'ok' : 'error';
+    }
+
+    function limpiarFormulario() {
+        document.getElementById('id').value = '';
+        document.getElementById('nombre').value = '';
+        document.getElementById('genero').value = '';
+        document.getElementById('pais').value = '';
+    }
+
+    async function cargarArtistas() {
+        try {
+            const resp = await fetch(`${API_BASE}/artistas`);
+            if (!resp.ok) throw new Error('Error al obtener artistas');
+            const data = await resp.json();
+
+            const tbody = document.getElementById('tabla-artistas');
+            tbody.innerHTML = '';
+
+            data.forEach(art => {
+                // Intentamos varias posibilidades por si los nombres difieren
+                const id = art._id || art.id || '';
+                const nombre = art.nombre || art.nombreArtista || '';
+                const genero = art.genero || art.generoMusical || '';
+                const pais = art.pais || art.nacionalidad || '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${id}</td>
+                    <td>${nombre}</td>
+                    <td>${genero}</td>
+                    <td>${pais}</td>
+                `;
+                tr.onclick = () => {
+                    document.getElementById('id').value = id;
+                    document.getElementById('nombre').value = nombre;
+                    document.getElementById('genero').value = genero;
+                    document.getElementById('pais').value = pais;
+                };
+                tbody.appendChild(tr);
+            });
+
+            mostrarMensaje('Lista de artistas cargada correctamente.', true);
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo cargar la lista de artistas.', false);
+        }
+    }
+
+    async function crearArtista() {
+        const nombre = document.getElementById('nombre').value.trim();
+        const genero = document.getElementById('genero').value.trim();
+        const pais = document.getElementById('pais').value.trim();
+
+        if (!nombre) {
+            mostrarMensaje('El nombre es obligatorio para crear un artista.', false);
+            return;
+        }
+
+        // ⚠️ Ajusta las claves si tus campos tienen otros nombres
+        const body = {
+            nombre: nombre,
+            genero: genero,
+            pais: pais
+        };
+
+        try {
+            const resp = await fetch(`${API_BASE}/artista`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!resp.ok) throw new Error('Error al crear artista');
+            await resp.json();
+            mostrarMensaje('Artista creado correctamente.', true);
+            limpiarFormulario();
+            cargarArtistas();
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo crear el artista.', false);
+        }
+    }
+
+    async function actualizarArtista() {
+        const id = document.getElementById('id').value.trim();
+        if (!id) {
+            mostrarMensaje('Debes indicar el ID para actualizar.', false);
+            return;
+        }
+
+        const nombre = document.getElementById('nombre').value.trim();
+        const genero = document.getElementById('genero').value.trim();
+        const pais = document.getElementById('pais').value.trim();
+
+        const body = {
+            // ⚠️ Ajusta según tus campos del modelo Artista
+            nombre: nombre,
+            genero: genero,
+            pais: pais
+        };
+
+        try {
+            const resp = await fetch(`${API_BASE}/artista/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!resp.ok) throw new Error('Error al actualizar artista');
+            await resp.json();
+            mostrarMensaje('Artista actualizado correctamente.', true);
+            cargarArtistas();
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo actualizar el artista.', false);
+        }
+    }
+
+    async function eliminarArtista() {
+        const id = document.getElementById('id').value.trim();
+        if (!id) {
+            mostrarMensaje('Debes indicar el ID para eliminar.', false);
+            return;
+        }
+
+        if (!confirm('¿Seguro que deseas eliminar este artista?')) return;
+
+        try {
+            const resp = await fetch(`${API_BASE}/artista/${id}`, {
+                method: 'DELETE'
+            });
+            if (!resp.ok) throw new Error('Error al eliminar artista');
+            mostrarMensaje('Artista eliminado correctamente.', true);
+            limpiarFormulario();
+            cargarArtistas();
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo eliminar el artista.', false);
+        }
+    }
+
+    async function buscarArtista() {
+        const id = document.getElementById('id').value.trim();
+        if (!id) {
+            mostrarMensaje('Debes indicar el ID para buscar.', false);
+            return;
+        }
+
+        try {
+            const resp = await fetch(`${API_BASE}/artista/${id}`);
+            if (resp.status === 404) {
+                mostrarMensaje('Artista no encontrado.', false);
+                return;
+            }
+            if (!resp.ok) throw new Error('Error al buscar artista');
+
+            const art = await resp.json();
+            const nombre = art.nombre || art.nombreArtista || '';
+            const genero = art.genero || art.generoMusical || '';
+            const pais = art.pais || art.nacionalidad || '';
+
+            document.getElementById('nombre').value = nombre;
+            document.getElementById('genero').value = genero;
+            document.getElementById('pais').value = pais;
+
+            mostrarMensaje('Artista cargado en el formulario.', true);
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo buscar el artista.', false);
+        }
+    }
+
+    // Cargar lista al entrar a la página
+    cargarArtistas();
+</script>
+</body>
+</html>

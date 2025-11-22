@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Discos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #020617;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 1.5rem;
+        }
+        h1 {
+            margin-top: 0;
+        }
+        a.volver {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #60a5fa;
+            text-decoration: none;
+        }
+        a.volver:hover {
+            text-decoration: underline;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+        }
+        .panel {
+            background: #020617;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        label {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.4rem;
+            margin-top: 0.3rem;
+            border-radius: 6px;
+            border: 1px solid #4b5563;
+            background: #020617;
+            color: #e5e7eb;
+        }
+        button {
+            margin-top: 0.7rem;
+            margin-right: 0.3rem;
+            padding: 0.5rem 0.9rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button.crear { background: #22c55e; }
+        button.actualizar { background: #eab308; }
+        button.eliminar { background: #ef4444; }
+        button.buscar { background: #3b82f6; }
+        button.refrescar { background: #6b7280; }
+        button:hover { filter: brightness(1.1); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.8rem;
+            font-size: 0.9rem;
+        }
+        th, td {
+            border: 1px solid #4b5563;
+            padding: 0.4rem 0.6rem;
+            text-align: left;
+        }
+        th {
+            background: #111827;
+        }
+        tr:nth-child(even) {
+            background: #020617;
+        }
+        #mensaje {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        #mensaje.ok { color: #22c55e; }
+        #mensaje.error { color: #f97316; }
+    </style>
+</head>
+<body>
+<a class="volver" href="index.html">&larr; Volver al menú</a>
+<h1>Gestión de Discos</h1>
+
+<div class="container">
+    <!-- Panel formulario -->
+    <div class="panel">
+        <h2>Formulario</h2>
+
+        <label for="id">ID (solo para buscar / actualizar / eliminar)</label>
+        <input type="text" id="id" placeholder="ID generado por MongoDB">
+
+        <label for="titulo">Título del disco</label>
+        <input type="text" id="titulo" placeholder="Ej: The Dark Side of the Moon">
+
+        <label for="anio">Año</label>
+        <input type="number" id="anio" placeholder="Ej: 1973">
+
+        <label for="genero">Género</label>
+        <input type="text" id="genero" placeholder="Ej: Rock progresivo">
+
+        <label for="artista">Artista (texto o ID, según tu modelo)</label>
+        <input type="text" id="artista" placeholder="Ej: Pink Floyd">
+
+        <button class="crear" type="button" onclick="crearDisco()">Crear</button>
+        <button class="actualizar" type="button" onclick="actualizarDisco()">Actualizar</button>
+        <button class="eliminar" type="button" onclick="eliminarDisco()">Eliminar</button>
+        <button class="buscar" type="button" onclick="buscarDisco()">Buscar por ID</button>
+        <button class="refrescar" type="button" onclick="cargarDiscos()">Refrescar lista</button>
+
+        <div id="mensaje"></div>
+    </div>
+
+    <!-- Panel tabla -->
+    <div class="panel">
+        <h2>Discos registrados</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Año</th>
+                <th>Género</th>
+                <th>Artista</th>
+            </tr>
+            </thead>
+            <tbody id="tabla-discos">
+            <!-- Filas generadas en JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // ⚠️ Ajusta el prefijo según tu DiscoController
+    const API_BASE = '/api/discos';
+
+    function mostrarMensaje(texto, ok = true) {
+        const div = document.getElementById('mensaje');
+        div.textContent = texto;
+        div.className = ok ? 'ok' : 'error';
+    }
+
+    function limpiarFormulario() {
+        document.getElementById('id').value = '';
+        document.getElementById('titulo').value = '';
+        document.getElementById('anio').value = '';
+        document.getElementById('genero').value = '';
+        document.getElementById('artista').value = '';
+    }
+
+    async function cargarDiscos() {
+        try {
+            const resp = await fetch(`${API_BASE}/discos`);
+            if (!resp.ok) throw new Error('Error al obtener discos');
+            const data = await resp.json();
+
+            const tbody = document.getElementById('tabla-discos');
+            tbody.innerHTML = '';
+
+            data.forEach(d => {
+                const id = d._id || d.id || '';
+                const titulo = d.titulo || d.nombre || d.nombreDisco || '';
+                const anio = d.anio || d.year || '';
+                const genero = d.genero || d.generoMusical || '';
+                const artista = d.artista || d.nombreArtista || d.artistaNombre || '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${id}</td>
+                    <td>${titulo}</td>
+                    <td>${anio}</td>
+                    <td>${genero}</td>
+                    <td>${artista}</td>
+                `;
+                tr.onclick = () => {
+                    document.getElementById('id').value = id;
+                    document.getElementById('titulo').value = titulo;
+                    document.getElementById('anio').value = anio;
+                    document.getElementById('genero').value = genero;
+                    document.getElementById('artista').value = artista;
+                };
+                tbody.appendChild(tr);
+            });
+
+            mostrarMensaje('Lista de discos cargada correctamente.', true);
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo cargar la lista de discos.', false);
+        }
+    }
+
+    async function crearDisco() {
+        const titulo = document.getElementById('titulo').value.trim();
+        const anio = document.getElementById('anio').value.trim();
+        const genero = document.getElementById('genero').value.trim();
+        const artista = document.getElementById('artista').value.trim();
+
+        if (!titulo) {
+            mostrarMensaje('El título es obligatorio para crear un disco.', false);
+            return;
+        }
+
+        // ⚠️ Ajusta claves según tu modelo Disco
+        const body = {
+            titulo: titulo,
+            anio: anio ? parseInt(anio, 10) : null,
+            genero: genero,
+            artista: artista     // puede ser nombre o ID, según lo tengas modelado
+        };
+
+        try {
+            const resp = await fetch(`${API_BASE}/disco`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!resp.ok) throw new Error('Error al crear disco');
+            await resp.json();
+            mostrarMensaje('Disco creado correctamente.', true);
+            limpiarFormulario();
+            cargarDiscos();
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo crear el disco.', false);
+        }
+    }
+
+    async function actualizarDisco() {
+        const id = document.getElementById('id').value.trim();
+        if (!id) {
+            mostrarMensaje('Debes indicar el ID para actualizar.', false);
+            return;
+        }
+
+        const titulo = document.getElementById('titulo').value.trim();
+        const anio = document.getElementById('anio').value.trim();
+        const genero = document.getElementById('genero').value.trim();
+        const artista = document.getElementById('artista').value.trim();
+
+        const body = {
+            titulo: titulo,
+            anio: anio ? parseInt(anio, 10) : null,
+            genero: genero,
+            artista: artista
+        };
+
+        try {
+            const resp = await fetch(`${API_BASE}/disco/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!resp.ok) throw new Error('Error al actualizar disco');
+            await resp.json();
+            mostrarMensaje('Disco actualizado correctamente.', true);
+            cargarDiscos();
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo actualizar el disco.', false);
+        }
+    }
+
+    async function eliminarDisco() {
+        const id = document.getElementById('id').value.trim();
+        if (!id) {
+            mostrarMensaje('Debes indicar el ID para eliminar.', false);
+            return;
+        }
+
+        if (!confirm('¿Seguro que deseas eliminar este disco?')) return;
+
+        try {
+            const resp = await fetch(`${API_BASE}/disco/${id}`, {
+                method: 'DELETE'
+            });
+            if (!resp.ok) throw new Error('Error al eliminar disco');
+            mostrarMensaje('Disco eliminado correctamente.', true);
+            limpiarFormulario();
+            cargarDiscos();
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo eliminar el disco.', false);
+        }
+    }
+
+    async function buscarDisco() {
+        const id = document.getElementById('id').value.trim();
+        if (!id) {
+            mostrarMensaje('Debes indicar el ID para buscar.', false);
+            return;
+        }
+
+        try {
+            const resp = await fetch(`${API_BASE}/disco/${id}`);
+            if (resp.status === 404) {
+                mostrarMensaje('Disco no encontrado.', false);
+                return;
+            }
+            if (!resp.ok) throw new Error('Error al buscar disco');
+
+            const d = await resp.json();
+            const titulo = d.titulo || d.nombre || d.nombreDisco || '';
+            const anio = d.anio || d.year || '';
+            const genero = d.genero || d.generoMusical || '';
+            const artista = d.artista || d.nombreArtista || d.artistaNombre || '';
+
+            document.getElementById('titulo').value = titulo;
+            document.getElementById('anio').value = anio;
+            document.getElementById('genero').value = genero;
+            document.getElementById('artista').value = artista;
+
+            mostrarMensaje('Disco cargado en el formulario.', true);
+        } catch (err) {
+            console.error(err);
+            mostrarMensaje('No se pudo buscar el disco.', false);
+        }
+    }
+
+    // Cargar lista al entrar
+    cargarDiscos();
+</script>
+</body>
+</html>
