@@ -157,7 +157,7 @@
 
     async function cargarArtistas() {
         try {
-            const resp = await fetch(`${API_BASE}/artistas`);
+            const resp = await fetch(`${API_BASE}/`);
             if (!resp.ok) throw new Error('Error al obtener artistas');
             const data = await resp.json();
 
@@ -212,7 +212,7 @@
         };
 
         try {
-            const resp = await fetch(`${API_BASE}/artista`, {
+            const resp = await fetch(`${API_BASE}/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -248,7 +248,7 @@
         };
 
         try {
-            const resp = await fetch(`${API_BASE}/artista/${id}`, {
+            const resp = await fetch(`${API_BASE}/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -274,7 +274,7 @@
         if (!confirm('¿Seguro que deseas eliminar este artista?')) return;
 
         try {
-            const resp = await fetch(`${API_BASE}/artista/${id}`, {
+            const resp = await fetch(`${API_BASE}/${id}`, {
                 method: 'DELETE'
             });
             if (!resp.ok) throw new Error('Error al eliminar artista');
@@ -295,7 +295,7 @@
         }
 
         try {
-            const resp = await fetch(`${API_BASE}/artista/${id}`);
+            const resp = await fetch(`${API_BASE}/${id}`);
             if (resp.status === 404) {
                 mostrarMensaje('Artista no encontrado.', false);
                 return;

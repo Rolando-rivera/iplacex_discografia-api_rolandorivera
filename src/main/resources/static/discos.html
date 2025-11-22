@@ -162,7 +162,7 @@
 
     async function cargarDiscos() {
         try {
-            const resp = await fetch(`${API_BASE}/discos`);
+            const resp = await fetch(`${API_BASE}/`);
             if (!resp.ok) throw new Error('Error al obtener discos');
             const data = await resp.json();
 
@@ -221,7 +221,7 @@
         };
 
         try {
-            const resp = await fetch(`${API_BASE}/disco`, {
+            const resp = await fetch(`${API_BASE}/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -257,7 +257,7 @@
         };
 
         try {
-            const resp = await fetch(`${API_BASE}/disco/${id}`, {
+            const resp = await fetch(`${API_BASE}/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -282,7 +282,7 @@
         if (!confirm('¿Seguro que deseas eliminar este disco?')) return;
 
         try {
-            const resp = await fetch(`${API_BASE}/disco/${id}`, {
+            const resp = await fetch(`${API_BASE}/${id}`, {
                 method: 'DELETE'
             });
             if (!resp.ok) throw new Error('Error al eliminar disco');
@@ -303,7 +303,7 @@
         }
 
         try {
-            const resp = await fetch(`${API_BASE}/disco/${id}`);
+            const resp = await fetch(`${API_BASE}/${id}`);
             if (resp.status === 404) {
                 mostrarMensaje('Disco no encontrado.', false);
                 return;
