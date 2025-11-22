@@ -97,7 +97,6 @@
 <h1>Gestión de Discos</h1>
 
 <div class="container">
-    <!-- Panel formulario -->
     <div class="panel">
         <h2>Formulario</h2>
 
@@ -125,7 +124,6 @@
         <div id="mensaje"></div>
     </div>
 
-    <!-- Panel tabla -->
     <div class="panel">
         <h2>Discos registrados</h2>
         <table>
@@ -139,16 +137,14 @@
             </tr>
             </thead>
             <tbody id="tabla-discos">
-            <!-- Filas generadas en JS -->
             </tbody>
         </table>
     </div>
 </div>
 
 <script>
-    // Endpoints reales de tu DiscoController
-    const API_BASE = '/api/disco';   // para crear, obtener, actualizar, eliminar
-    const API_LIST = '/api/discos';  // para listar todos
+    const API_BASE = '/api/disco';
+    const API_LIST = '/api/discos';
 
     function mostrarMensaje(texto, ok = true) {
         const div = document.getElementById('mensaje');
@@ -246,6 +242,10 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
+            if (resp.status === 404) {
+                mostrarMensaje('El ID de artista no existe.', false);
+                return;
+            }
             if (!resp.ok) throw new Error('Error al crear disco');
             await resp.json();
             mostrarMensaje('Disco creado correctamente.', true);
@@ -301,6 +301,10 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
+            if (resp.status === 404) {
+                mostrarMensaje('Disco o artista no encontrado.', false);
+                return;
+            }
             if (!resp.ok) throw new Error('Error al actualizar disco');
             await resp.json();
             mostrarMensaje('Disco actualizado correctamente.', true);
@@ -325,6 +329,10 @@
             const resp = await fetch(`${API_BASE}/${id}`, {
                 method: 'DELETE'
             });
+            if (resp.status === 404) {
+                mostrarMensaje('Disco no encontrado.', false);
+                return;
+            }
             if (!resp.ok) throw new Error('Error al eliminar disco');
             mostrarMensaje('Disco eliminado correctamente.', true);
             limpiarFormulario();
@@ -371,7 +379,6 @@
         }
     }
 
-    // Cargar lista al entrar
     cargarDiscos();
 </script>
 </body>

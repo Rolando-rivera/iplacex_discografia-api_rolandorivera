@@ -125,7 +125,6 @@
             Artista activo actualmente
         </label>
 
-        <!-- BOTONES -->
         <button class="crear" type="button" onclick="crearArtista()">Crear</button>
         <button class="actualizar" type="button" onclick="actualizarArtista()">Actualizar</button>
         <button class="eliminar" type="button" onclick="eliminarArtista()">Eliminar</button>
@@ -149,17 +148,13 @@
             </tr>
             </thead>
             <tbody id="tabla-artistas">
-            <!-- Filas generadas por JS -->
             </tbody>
         </table>
     </div>
 </div>
 
 <script>
-    // Si quieres que funcione tanto local como en Render, deja la ruta relativa:
     const API_BASE = '/api/artistas';
-    // Si quisieras forzar la URL pública, podrías usar:
-    // const API_BASE = 'https://iplacex-discografia-api-rolandorivera.onrender.com/api/artistas';
 
     function mostrarMensaje(texto, ok = true) {
         const div = document.getElementById('mensaje');
@@ -178,7 +173,7 @@
     // GET /api/artistas
     async function cargarArtistas() {
         try {
-            const resp = await fetch(API_BASE); // sin "/" extra
+            const resp = await fetch(API_BASE);
             if (!resp.ok) throw new Error('Error al obtener artistas');
             const data = await resp.json();
 
@@ -309,6 +304,11 @@
                 body: JSON.stringify(body)
             });
 
+            if (resp.status === 404) {
+                mostrarMensaje('Artista no encontrado (404).', false);
+                return;
+            }
+
             if (!resp.ok) throw new Error('Error al actualizar artista');
             await resp.json();
             mostrarMensaje('Artista actualizado correctamente.', true);
@@ -333,6 +333,10 @@
             const resp = await fetch(`${API_BASE}/${id}`, {
                 method: 'DELETE'
             });
+            if (resp.status === 404) {
+                mostrarMensaje('Artista no encontrado (404).', false);
+                return;
+            }
             if (!resp.ok) throw new Error('Error al eliminar artista');
             mostrarMensaje('Artista eliminado correctamente.', true);
             limpiarFormulario();
@@ -379,7 +383,6 @@
         }
     }
 
-    // Cargar lista al entrar a la página
     cargarArtistas();
 </script>
 </body>

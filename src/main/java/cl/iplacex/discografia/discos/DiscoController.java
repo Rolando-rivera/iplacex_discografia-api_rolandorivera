@@ -22,9 +22,9 @@ public class DiscoController {
     }
 
     // POST /api/disco
-    @PostMapping(value = "/disco",
-                 consumes = MediaType.APPLICATION_JSON_VALUE,
-                 produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value="/disco",
+                 consumes=MediaType.APPLICATION_JSON_VALUE,
+                 produces=MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> crear(@RequestBody Disco disco) {
         if (!artistaRepository.existsById(disco.getIdArtista())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -35,13 +35,13 @@ public class DiscoController {
     }
 
     // GET /api/discos
-    @GetMapping(value = "/discos", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value="/discos", produces=MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Disco>> listar() {
         return ResponseEntity.ok(discoRepository.findAll());
     }
 
     // GET /api/disco/{id}
-    @GetMapping(value = "/disco/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value="/disco/{id}", produces=MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> obtener(@PathVariable String id) {
         return discoRepository.findById(id)
                 .<ResponseEntity<Object>>map(ResponseEntity::ok)
@@ -49,9 +49,9 @@ public class DiscoController {
     }
 
     // PUT /api/disco/{id}
-    @PutMapping(value = "/disco/{id}",
-                consumes = MediaType.APPLICATION_JSON_VALUE,
-                produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value="/disco/{id}",
+                consumes=MediaType.APPLICATION_JSON_VALUE,
+                produces=MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> actualizar(@PathVariable String id, @RequestBody Disco disco) {
         if (!discoRepository.existsById(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Disco no encontrado");
@@ -65,7 +65,7 @@ public class DiscoController {
     }
 
     // DELETE /api/disco/{id}
-    @DeleteMapping(value = "/disco/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value="/disco/{id}", produces=MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> eliminar(@PathVariable String id) {
         if (!discoRepository.existsById(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Disco no encontrado");
@@ -75,7 +75,7 @@ public class DiscoController {
     }
 
     // GET /api/artista/{id}/discos
-    @GetMapping(value = "/artista/{id}/discos", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value="/artista/{id}/discos", produces=MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Disco>> porArtista(@PathVariable("id") String idArtista) {
         return ResponseEntity.ok(discoRepository.findDiscosByIdArtista(idArtista));
     }
