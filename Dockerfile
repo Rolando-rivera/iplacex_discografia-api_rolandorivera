@@ -8,8 +8,8 @@ COPY . .
 # Construimos el JAR (o WAR, según tu proyecto)
 RUN gradle clean bootJar --no-daemon
 
-# Stage 2: Run con OpenJDK
-FROM openjdk:17-jdk-slim
+# Stage 2: Run con Java 17 (Eclipse Temurin)
+FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 
 # Copiamos el jar generado desde el build
