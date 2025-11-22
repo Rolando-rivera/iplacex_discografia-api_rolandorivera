@@ -39,6 +39,12 @@
             margin-top: 0.5rem;
             font-size: 0.9rem;
         }
+        label.check {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.7rem;
+        }
         input, textarea {
             width: 100%;
             padding: 0.4rem;
@@ -47,6 +53,10 @@
             border: 1px solid #4b5563;
             background: #020617;
             color: #e5e7eb;
+        }
+        input[type="checkbox"] {
+            width: auto;
+            margin-top: 0;
         }
         button {
             margin-top: 0.7rem;
@@ -104,11 +114,16 @@
         <label for="nombre">Nombre del artista</label>
         <input type="text" id="nombre" placeholder="Ej: Pink Floyd">
 
-        <label for="genero">Género</label>
-        <input type="text" id="genero" placeholder="Ej: Rock progresivo">
+        <label for="estilos">Estilos musicales (separados por coma)</label>
+        <input type="text" id="estilos" placeholder="Ej: Rock progresivo, Psicodelia">
 
-        <label for="pais">País</label>
-        <input type="text" id="pais" placeholder="Ej: Reino Unido">
+        <label for="anioFundacion">Año de fundación</label>
+        <input type="number" id="anioFundacion" placeholder="Ej: 1965">
+
+        <label class="check">
+            <input type="checkbox" id="estaActivo">
+            Artista activo actualmente
+        </label>
 
         <!-- BOTONES -->
         <button class="crear" type="button" onclick="crearArtista()">Crear</button>
@@ -128,8 +143,9 @@
             <tr>
                 <th>ID</th>
                 <th>Nombre</th>
-                <th>Género</th>
-                <th>País</th>
+                <th>Estilos</th>
+                <th>Año fundación</th>
+                <th>Activo</th>
             </tr>
             </thead>
             <tbody id="tabla-artistas">
@@ -140,7 +156,10 @@
 </div>
 
 <script>
+    // Si quieres que funcione tanto local como en Render, deja la ruta relativa:
     const API_BASE = '/api/artistas';
+    // Si quisieras forzar la URL pública, podrías usar:
+    // const API_BASE = 'https://iplacex-discografia-api-rolandorivera.onrender.com/api/artistas';
 
     function mostrarMensaje(texto, ok = true) {
         const div = document.getElementById('mensaje');
@@ -151,13 +170,15 @@
     function limpiarFormulario() {
         document.getElementById('id').value = '';
         document.getElementById('nombre').value = '';
-        document.getElementById('genero').value = '';
-        document.getElementById('pais').value = '';
+        document.getElementById('estilos').value = '';
+        document.getElementById('anioFundacion').value = '';
+        document.getElementById('estaActivo').checked = false;
     }
 
+    // GET /api/artistas
     async function cargarArtistas() {
         try {
-            const resp = await fetch(`${API_BASE}/`);
+            const resp = await fetch(API_BASE); // sin "/" extra
             if (!resp.ok) throw new Error('Error al obtener artistas');
             const data = await resp.json();
 
@@ -165,24 +186,28 @@
             tbody.innerHTML = '';
 
             data.forEach(art => {
-                // Intentamos varias posibilidades por si los nombres difieren
                 const id = art._id || art.id || '';
-                const nombre = art.nombre || art.nombreArtista || '';
-                const genero = art.genero || art.generoMusical || '';
-                const pais = art.pais || art.nacionalidad || '';
+                const nombre = art.nombre || '';
+                const estilosTexto = Array.isArray(art.estilos)
+                    ? art.estilos.join(', ')
+                    : (art.estilos || '');
+                const anioFundacion = art.anioFundacion != null ? art.anioFundacion : '';
+                const estaActivo = art.estaActivo === true;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${id}</td>
                     <td>${nombre}</td>
-                    <td>${genero}</td>
-                    <td>${pais}</td>
+                    <td>${estilosTexto}</td>
+                    <td>${anioFundacion}</td>
+                    <td>${estaActivo ? 'Sí' : 'No'}</td>
                 `;
                 tr.onclick = () => {
                     document.getElementById('id').value = id;
                     document.getElementById('nombre').value = nombre;
-                    document.getElementById('genero').value = genero;
-                    document.getElementById('pais').value = pais;
+                    document.getElementById('estilos').value = estilosTexto;
+                    document.getElementById('anioFundacion').value = anioFundacion;
+                    document.getElementById('estaActivo').checked = estaActivo;
                 };
                 tbody.appendChild(tr);
             });
@@ -194,25 +219,38 @@
         }
     }
 
+    // POST /api/artistas
     async function crearArtista() {
         const nombre = document.getElementById('nombre').value.trim();
-        const genero = document.getElementById('genero').value.trim();
-        const pais = document.getElementById('pais').value.trim();
+        const estilosStr = document.getElementById('estilos').value.trim();
+        const anioStr = document.getElementById('anioFundacion').value.trim();
+        const estaActivo = document.getElementById('estaActivo').checked;
 
         if (!nombre) {
             mostrarMensaje('El nombre es obligatorio para crear un artista.', false);
             return;
         }
 
-        // ⚠️ Ajusta las claves si tus campos tienen otros nombres
+        if (!anioStr || isNaN(parseInt(anioStr, 10))) {
+            mostrarMensaje('El año de fundación es obligatorio y debe ser numérico.', false);
+            return;
+        }
+
+        const estilos = estilosStr
+            ? estilosStr.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+
+        const anioFundacion = parseInt(anioStr, 10);
+
         const body = {
-            nombre: nombre,
-            genero: genero,
-            pais: pais
+            nombre,
+            estilos,
+            anioFundacion,
+            estaActivo
         };
 
         try {
-            const resp = await fetch(`${API_BASE}/`, {
+            const resp = await fetch(API_BASE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -229,6 +267,7 @@
         }
     }
 
+    // PUT /api/artistas/{id}
     async function actualizarArtista() {
         const id = document.getElementById('id').value.trim();
         if (!id) {
@@ -237,14 +276,30 @@
         }
 
         const nombre = document.getElementById('nombre').value.trim();
-        const genero = document.getElementById('genero').value.trim();
-        const pais = document.getElementById('pais').value.trim();
+        const estilosStr = document.getElementById('estilos').value.trim();
+        const anioStr = document.getElementById('anioFundacion').value.trim();
+        const estaActivo = document.getElementById('estaActivo').checked;
+
+        if (!nombre) {
+            mostrarMensaje('El nombre es obligatorio para actualizar.', false);
+            return;
+        }
+
+        if (!anioStr || isNaN(parseInt(anioStr, 10))) {
+            mostrarMensaje('El año de fundación es obligatorio y debe ser numérico.', false);
+            return;
+        }
+
+        const estilos = estilosStr
+            ? estilosStr.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+        const anioFundacion = parseInt(anioStr, 10);
 
         const body = {
-            // ⚠️ Ajusta según tus campos del modelo Artista
-            nombre: nombre,
-            genero: genero,
-            pais: pais
+            nombre,
+            estilos,
+            anioFundacion,
+            estaActivo
         };
 
         try {
@@ -264,6 +319,7 @@
         }
     }
 
+    // DELETE /api/artistas/{id}
     async function eliminarArtista() {
         const id = document.getElementById('id').value.trim();
         if (!id) {
@@ -287,6 +343,7 @@
         }
     }
 
+    // GET /api/artistas/{id}
     async function buscarArtista() {
         const id = document.getElementById('id').value.trim();
         if (!id) {
@@ -303,13 +360,17 @@
             if (!resp.ok) throw new Error('Error al buscar artista');
 
             const art = await resp.json();
-            const nombre = art.nombre || art.nombreArtista || '';
-            const genero = art.genero || art.generoMusical || '';
-            const pais = art.pais || art.nacionalidad || '';
+            const nombre = art.nombre || '';
+            const estilosTexto = Array.isArray(art.estilos)
+                ? art.estilos.join(', ')
+                : (art.estilos || '');
+            const anioFundacion = art.anioFundacion != null ? art.anioFundacion : '';
+            const estaActivo = art.estaActivo === true;
 
             document.getElementById('nombre').value = nombre;
-            document.getElementById('genero').value = genero;
-            document.getElementById('pais').value = pais;
+            document.getElementById('estilos').value = estilosTexto;
+            document.getElementById('anioFundacion').value = anioFundacion;
+            document.getElementById('estaActivo').checked = estaActivo;
 
             mostrarMensaje('Artista cargado en el formulario.', true);
         } catch (err) {

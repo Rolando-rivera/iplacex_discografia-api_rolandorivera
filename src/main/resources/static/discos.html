@@ -39,7 +39,7 @@
             margin-top: 0.5rem;
             font-size: 0.9rem;
         }
-        input {
+        input, textarea {
             width: 100%;
             padding: 0.4rem;
             margin-top: 0.3rem;
@@ -47,6 +47,9 @@
             border: 1px solid #4b5563;
             background: #020617;
             color: #e5e7eb;
+        }
+        textarea {
+            min-height: 60px;
         }
         button {
             margin-top: 0.7rem;
@@ -101,17 +104,17 @@
         <label for="id">ID (solo para buscar / actualizar / eliminar)</label>
         <input type="text" id="id" placeholder="ID generado por MongoDB">
 
-        <label for="titulo">Título del disco</label>
-        <input type="text" id="titulo" placeholder="Ej: The Dark Side of the Moon">
+        <label for="idArtista">ID del artista (copiar desde la tabla de artistas)</label>
+        <input type="text" id="idArtista" placeholder="Ej: 6770f... (id de artista)">
 
-        <label for="anio">Año</label>
-        <input type="number" id="anio" placeholder="Ej: 1973">
+        <label for="nombre">Nombre del disco</label>
+        <input type="text" id="nombre" placeholder="Ej: The Dark Side of the Moon">
 
-        <label for="genero">Género</label>
-        <input type="text" id="genero" placeholder="Ej: Rock progresivo">
+        <label for="anioLanzamiento">Año de lanzamiento</label>
+        <input type="number" id="anioLanzamiento" placeholder="Ej: 1973">
 
-        <label for="artista">Artista (texto o ID, según tu modelo)</label>
-        <input type="text" id="artista" placeholder="Ej: Pink Floyd">
+        <label for="canciones">Canciones (separadas por coma)</label>
+        <textarea id="canciones" placeholder="Ej: Time, Money, Us and Them"></textarea>
 
         <button class="crear" type="button" onclick="crearDisco()">Crear</button>
         <button class="actualizar" type="button" onclick="actualizarDisco()">Actualizar</button>
@@ -129,10 +132,10 @@
             <thead>
             <tr>
                 <th>ID</th>
-                <th>Título</th>
-                <th>Año</th>
-                <th>Género</th>
-                <th>Artista</th>
+                <th>Nombre</th>
+                <th>Año lanzamiento</th>
+                <th>ID Artista</th>
+                <th>Canciones</th>
             </tr>
             </thead>
             <tbody id="tabla-discos">
@@ -143,8 +146,9 @@
 </div>
 
 <script>
-    // ⚠️ Ajusta el prefijo según tu DiscoController
-    const API_BASE = '/api/discos';
+    // Endpoints reales de tu DiscoController
+    const API_BASE = '/api/disco';   // para crear, obtener, actualizar, eliminar
+    const API_LIST = '/api/discos';  // para listar todos
 
     function mostrarMensaje(texto, ok = true) {
         const div = document.getElementById('mensaje');
@@ -154,42 +158,45 @@
 
     function limpiarFormulario() {
         document.getElementById('id').value = '';
-        document.getElementById('titulo').value = '';
-        document.getElementById('anio').value = '';
-        document.getElementById('genero').value = '';
-        document.getElementById('artista').value = '';
+        document.getElementById('idArtista').value = '';
+        document.getElementById('nombre').value = '';
+        document.getElementById('anioLanzamiento').value = '';
+        document.getElementById('canciones').value = '';
     }
 
+    // GET /api/discos
     async function cargarDiscos() {
         try {
-            const resp = await fetch(`${API_BASE}/`);
+            const resp = await fetch(API_LIST);
             if (!resp.ok) throw new Error('Error al obtener discos');
             const data = await resp.json();
 
             const tbody = document.getElementById('tabla-discos');
             tbody.innerHTML = '';
 
-            data.forEach(d => {
-                const id = d._id || d.id || '';
-                const titulo = d.titulo || d.nombre || d.nombreDisco || '';
-                const anio = d.anio || d.year || '';
-                const genero = d.genero || d.generoMusical || '';
-                const artista = d.artista || d.nombreArtista || d.artistaNombre || '';
+            data.forEach(disco => {
+                const id = disco._id || disco.id || '';
+                const nombre = disco.nombre || '';
+                const anioLanzamiento = disco.anioLanzamiento != null ? disco.anioLanzamiento : '';
+                const idArtista = disco.idArtista || '';
+                const cancionesTexto = Array.isArray(disco.canciones)
+                    ? disco.canciones.join(', ')
+                    : (disco.canciones || '');
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${id}</td>
-                    <td>${titulo}</td>
-                    <td>${anio}</td>
-                    <td>${genero}</td>
-                    <td>${artista}</td>
+                    <td>${nombre}</td>
+                    <td>${anioLanzamiento}</td>
+                    <td>${idArtista}</td>
+                    <td>${cancionesTexto}</td>
                 `;
                 tr.onclick = () => {
                     document.getElementById('id').value = id;
-                    document.getElementById('titulo').value = titulo;
-                    document.getElementById('anio').value = anio;
-                    document.getElementById('genero').value = genero;
-                    document.getElementById('artista').value = artista;
+                    document.getElementById('idArtista').value = idArtista;
+                    document.getElementById('nombre').value = nombre;
+                    document.getElementById('anioLanzamiento').value = anioLanzamiento;
+                    document.getElementById('canciones').value = cancionesTexto;
                 };
                 tbody.appendChild(tr);
             });
@@ -201,27 +208,40 @@
         }
     }
 
+    // POST /api/disco
     async function crearDisco() {
-        const titulo = document.getElementById('titulo').value.trim();
-        const anio = document.getElementById('anio').value.trim();
-        const genero = document.getElementById('genero').value.trim();
-        const artista = document.getElementById('artista').value.trim();
+        const idArtista = document.getElementById('idArtista').value.trim();
+        const nombre = document.getElementById('nombre').value.trim();
+        const anioStr = document.getElementById('anioLanzamiento').value.trim();
+        const cancionesStr = document.getElementById('canciones').value.trim();
 
-        if (!titulo) {
-            mostrarMensaje('El título es obligatorio para crear un disco.', false);
+        if (!idArtista) {
+            mostrarMensaje('El ID del artista es obligatorio.', false);
+            return;
+        }
+        if (!nombre) {
+            mostrarMensaje('El nombre del disco es obligatorio.', false);
+            return;
+        }
+        if (!anioStr || isNaN(parseInt(anioStr, 10))) {
+            mostrarMensaje('El año de lanzamiento es obligatorio y debe ser numérico.', false);
             return;
         }
 
-        // ⚠️ Ajusta claves según tu modelo Disco
+        const anioLanzamiento = parseInt(anioStr, 10);
+        const canciones = cancionesStr
+            ? cancionesStr.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+
         const body = {
-            titulo: titulo,
-            anio: anio ? parseInt(anio, 10) : null,
-            genero: genero,
-            artista: artista     // puede ser nombre o ID, según lo tengas modelado
+            idArtista,
+            nombre,
+            anioLanzamiento,
+            canciones
         };
 
         try {
-            const resp = await fetch(`${API_BASE}/`, {
+            const resp = await fetch(API_BASE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -237,6 +257,7 @@
         }
     }
 
+    // PUT /api/disco/{id}
     async function actualizarDisco() {
         const id = document.getElementById('id').value.trim();
         if (!id) {
@@ -244,16 +265,34 @@
             return;
         }
 
-        const titulo = document.getElementById('titulo').value.trim();
-        const anio = document.getElementById('anio').value.trim();
-        const genero = document.getElementById('genero').value.trim();
-        const artista = document.getElementById('artista').value.trim();
+        const idArtista = document.getElementById('idArtista').value.trim();
+        const nombre = document.getElementById('nombre').value.trim();
+        const anioStr = document.getElementById('anioLanzamiento').value.trim();
+        const cancionesStr = document.getElementById('canciones').value.trim();
+
+        if (!idArtista) {
+            mostrarMensaje('El ID del artista es obligatorio.', false);
+            return;
+        }
+        if (!nombre) {
+            mostrarMensaje('El nombre del disco es obligatorio.', false);
+            return;
+        }
+        if (!anioStr || isNaN(parseInt(anioStr, 10))) {
+            mostrarMensaje('El año de lanzamiento es obligatorio y debe ser numérico.', false);
+            return;
+        }
+
+        const anioLanzamiento = parseInt(anioStr, 10);
+        const canciones = cancionesStr
+            ? cancionesStr.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
 
         const body = {
-            titulo: titulo,
-            anio: anio ? parseInt(anio, 10) : null,
-            genero: genero,
-            artista: artista
+            idArtista,
+            nombre,
+            anioLanzamiento,
+            canciones
         };
 
         try {
@@ -272,6 +311,7 @@
         }
     }
 
+    // DELETE /api/disco/{id}
     async function eliminarDisco() {
         const id = document.getElementById('id').value.trim();
         if (!id) {
@@ -295,6 +335,7 @@
         }
     }
 
+    // GET /api/disco/{id}
     async function buscarDisco() {
         const id = document.getElementById('id').value.trim();
         if (!id) {
@@ -310,16 +351,18 @@
             }
             if (!resp.ok) throw new Error('Error al buscar disco');
 
-            const d = await resp.json();
-            const titulo = d.titulo || d.nombre || d.nombreDisco || '';
-            const anio = d.anio || d.year || '';
-            const genero = d.genero || d.generoMusical || '';
-            const artista = d.artista || d.nombreArtista || d.artistaNombre || '';
+            const disco = await resp.json();
+            const nombre = disco.nombre || '';
+            const anioLanzamiento = disco.anioLanzamiento != null ? disco.anioLanzamiento : '';
+            const idArtista = disco.idArtista || '';
+            const cancionesTexto = Array.isArray(disco.canciones)
+                ? disco.canciones.join(', ')
+                : (disco.canciones || '');
 
-            document.getElementById('titulo').value = titulo;
-            document.getElementById('anio').value = anio;
-            document.getElementById('genero').value = genero;
-            document.getElementById('artista').value = artista;
+            document.getElementById('idArtista').value = idArtista;
+            document.getElementById('nombre').value = nombre;
+            document.getElementById('anioLanzamiento').value = anioLanzamiento;
+            document.getElementById('canciones').value = cancionesTexto;
 
             mostrarMensaje('Disco cargado en el formulario.', true);
         } catch (err) {
